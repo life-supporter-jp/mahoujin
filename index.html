@@ -2,63 +2,61 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>マルチサイズ魔方陣</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
         
-        /* --- 1. 全体レイアウト：最大800px・完全中央寄せ --- */
+        /* --- 1. 全要素のサイズ計算を固定（はみ出し防止の基本） --- */
+        * {
+            box-sizing: border-box;
+        }
+
+        /* --- 2. 全体レイアウト：PC中央寄せ & スマホ横揺れ防止 --- */
         body {
             font-family: 'Roboto', sans-serif;
             background-color: #f0f4f8;
             color: #333;
-            margin: 0 auto;       /* 左右をautoにすることでPC画面で中央配置 */
+            margin: 0 auto !important; /* PCで確実に中央へ */
             padding: 10px;
-            max-width: 800px;     /* PCでの最大幅を800pxに制限 */
+            max-width: 800px;         /* PCでの最大幅 */
+            width: 100%;              /* スマホでは横幅いっぱい */
+            display: block;           /* flexを解除して中央寄せを安定化 */
+            overflow-x: hidden;       /* 右側の余計な隙間・はみ出しをカット */
             min-height: 100vh;
-            box-sizing: border-box; /* パディングを含めた幅計算 */
-            overflow-x: hidden;   /* 横スクロールの発生を防ぐ */
         }
 
-        /* --- 2. 画像の自動リサイズ（中央配置） --- */
+        /* --- 3. 画像：枠内に収め、中央に配置 --- */
         img {
             max-width: 100% !important; 
             height: auto !important;
             display: block;
-            margin: 0 auto 15px auto;   /* 画像そのものを中央に寄せる */
+            margin: 0 auto 15px auto;
         }
 
         .container {
             background-color: #fff;
-            padding: 1.25rem;
+            padding: 1rem;
             border-radius: 1rem;
             box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
             text-align: center;
             width: 100%;          
-            box-sizing: border-box;
             margin: 0 auto 30px auto; /* コンテナ自体を中央寄せ */
         }
 
-        h1 {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #4a90e2;
-            margin-bottom: 0.5rem;
-        }
-
-        /* --- 3. 盤面：スマホではみ出さないための最重要設定 --- */
+        /* --- 4. 盤面：スマホの画面幅から絶対にはみ出さない設定 --- */
         #sudoku-grid {
             display: grid;
             grid-gap: 2px;
-            margin: 15px auto;    /* 盤面を中央に配置 */
+            margin: 15px auto;
             border: 3px solid #333;
             
-            /* スマホで右側がはみ出さないように vw（画面幅単位）を使用 */
-            width: 88vw;          /* 画面幅の88%に抑えて余白を確保 */
-            max-width: 450px;     /* PCで大きくなりすぎないように制限 */
-            aspect-ratio: 1 / 1;  /* 常に正方形を維持 */
-            box-sizing: border-box;
+            /* 横幅を画面の85%程度に抑えることで、右側の余白を確保 */
+            width: 85vw;          
+            max-width: 400px;     /* PCで大きくなりすぎない */
+            aspect-ratio: 1 / 1;  /* 正方形維持 */
+            background-color: #333; /* 隙間の線の色 */
         }
 
         #sudoku-grid.grid-3 { grid-template-columns: repeat(3, 1fr); }
@@ -68,72 +66,64 @@
         .cell {
             width: 100%;
             height: 100%;
-            position: relative;
             background-color: #fff;
-            border: 1px solid #ddd;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            /* 数字が枠を突き抜けないように可変フォントサイズに設定 */
-            font-size: clamp(1rem, 6vw, 1.8rem); 
+            font-size: clamp(0.9rem, 5vw, 1.5rem); 
         }
 
-        .cell-content {
-            font-weight: bold;
-            color: #1a202c;
-        }
-
-        .given { background-color: #e2e8f0; color: #4a5568; cursor: not-allowed; }
+        .cell-content { font-weight: bold; color: #1a202c; }
+        .given { background-color: #e2e8f0; color: #4a5568; }
         .correct { background-color: #c6f6d5; }
         .incorrect { background-color: #feb2b2; }
         .active-cell { background-color: #90cdf4; }
 
-        /* 操作パネル（ボタン） */
+        /* ボタン類の折り返し設定 */
         .controls {
             margin-top: 1rem;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 5px;
+            gap: 4px;
         }
 
         .num-button, .control-button {
-            width: 42px;
-            height: 42px;
+            width: 40px;
+            height: 40px;
             background-color: #4a90e2;
             color: #fff;
-            border-radius: 8px;
+            border-radius: 6px;
             font-weight: bold;
-            cursor: pointer;
+            font-size: 0.9rem;
         }
 
-        .control-button.clear { background-color: #e53e3e; width: 55px; }
+        .control-button.clear { background-color: #e53e3e; width: 50px; }
 
-        /* スマホ向け：チェックと新規ゲームボタンを並べる */
         @media (max-width: 600px) {
             #check-button, #new-game-button {
-                width: 44%; 
-                margin: 10px 2%;
-                font-size: 0.9rem;
+                width: 46%; 
+                margin: 8px 1%;
+                padding: 10px 5px;
             }
         }
-
-        .description { text-align: left; line-height: 1.5; font-size: 0.95rem; }
     </style>
 </head>
 <body>
 
     <img src="https://life-supporter.jp/sp/hxySQ4ff/ct5NJq8Z/images/XS012099.jpg" alt="タイトル画像">
 
-    <div style="text-align: center; margin-bottom: 10px;">
-        <h3><span style="font-size: 17px; font-weight: bold;">魔法定数が縦、横、斜め、の合計数になるように数字を入れていきましょう。</span></h3>
+    <div style="text-align: center; padding: 0 10px;">
+        <h3 style="font-size: 17px; font-weight: bold; line-height: 1.4;">
+            魔法定数が縦、横、斜め、の合計数になるように数字を入れていきましょう。
+        </h3>
     </div>
 
     <div class="container">
-        <h1>魔方陣ゲーム</h1>
+        <h1 style="font-size: 1.5rem; font-weight: bold; color: #4a90e2; margin-bottom: 10px;">魔方陣ゲーム</h1>
         
-        <div id="magic-constant-display" style="font-weight: bold; background: #e2e8f0; padding: 8px; border-radius: 8px; margin-bottom: 15px; font-size: 1rem;"></div>
+        <div id="magic-constant-display" style="font-weight: bold; background: #e2e8f0; padding: 8px; border-radius: 8px; margin-bottom: 15px;"></div>
 
         <div id="size-selector" class="flex justify-center gap-2 mb-4">
             <button class="px-4 py-1 bg-gray-200 rounded" data-size="3">3x3</button>
@@ -146,32 +136,25 @@
         <div class="controls" id="number-controls"></div>
 
         <div class="flex justify-center mt-4">
-            <button id="check-button" class="px-5 py-2 bg-green-500 text-white font-bold rounded-lg shadow">チェック</button>
-            <button id="new-game-button" class="ml-2 px-5 py-2 bg-blue-500 text-white font-bold rounded-lg shadow">新しいゲーム</button>
+            <button id="check-button" class="px-5 py-2 bg-green-500 text-white font-bold rounded-lg">チェック</button>
+            <button id="new-game-button" class="ml-2 px-5 py-2 bg-blue-500 text-white font-bold rounded-lg">新しいゲーム</button>
         </div>
 
-        <div id="message" class="mt-4 font-bold h-6"></div>
-
-        <div class="description mt-6 border-t pt-4">
-            <p><strong style="font-size: 1.1rem;">魔方陣とは？</strong></p>
-            <p>縦・横・対角線の数字の合計がすべて同じ値（魔法定数）になる正方形のパズルです。</p>
-        </div>
+        <div id="message" class="mt-3 font-bold text-sm h-5"></div>
     </div>
 
-    <div style="margin-top: 10px; text-align: center;">
-        <p style="font-size: 16px; font-weight: bold; margin-bottom: 15px;">
+    <div style="text-align: center; width: 100%;">
+        <p style="font-size: 15px; font-weight: bold; margin-bottom: 10px; padding: 0 10px;">
             今回のアプリは如何だったでしょうか？脳トレや趣味のサイトをご案内します。
         </p>
         <img src="https://life-supporter.jp/sp/hxySQ4ff/ct5NJq8Z/images/XS012085.jpg" alt="案内画像">
         
         <div style="margin-top: 20px;">
-            <p style="font-size: 20px; font-weight: bold;">以下より体験版をご確認ください。</p>
-            <img src="https://life-supporter.jp/sp/hxySQ4ff/ct5NJq8Z/images/XS012100.jpg" style="width: 180px; margin-top: 10px;">
-            <div style="margin-top: 10px;">
-                <a href="https://life-supporter.jp/lp/HRSuykFf" style="color: blue; font-size: 18px; text-decoration: underline;">
-                    https://life-supporter.jp/lp/HRSuykFf
-                </a>
-            </div>
+            <p style="font-size: 18px; font-weight: bold;">以下より体験版をご確認ください。</p>
+            <img src="https://life-supporter.jp/sp/hxySQ4ff/ct5NJq8Z/images/XS012100.jpg" style="width: 150px; margin: 10px auto;">
+            <a href="https://life-supporter.jp/lp/HRSuykFf" style="color: blue; font-size: 16px; text-decoration: underline; display: block;">
+                https://life-supporter.jp/lp/HRSuykFf
+            </a>
         </div>
     </div>
 
@@ -234,8 +217,7 @@
                     btn.textContent = i;
                     btn.onclick = () => {
                         if (!activeCell) return;
-                        const r = activeCell.dataset.r; const c = activeCell.dataset.c;
-                        currentBoard[r][c] = i;
+                        currentBoard[activeCell.dataset.r][activeCell.dataset.c] = i;
                         activeCell.querySelector('.cell-content').textContent = i;
                     };
                     numberControls.appendChild(btn);
@@ -251,27 +233,11 @@
                 numberControls.appendChild(clr);
             }
 
-            function check() {
-                let win = true;
-                gridElement.querySelectorAll('.cell').forEach(cell => {
-                    const r = cell.dataset.r; const c = cell.dataset.c;
-                    cell.classList.remove('correct', 'incorrect');
-                    if (currentBoard[r][c] === solvedBoard[r][c]) {
-                        cell.classList.add('correct');
-                    } else if (currentBoard[r][c] !== 0) {
-                        cell.classList.add('incorrect');
-                        win = false;
-                    } else { win = false; }
-                });
-                messageElement.textContent = win ? "正解です！お見事！" : "どこかが違っているか、未入力です。";
-                messageElement.style.color = win ? "green" : "red";
-            }
-
             function start() {
                 if (gridSize === 3) solvedBoard = generate3x3();
                 else if (gridSize === 4) solvedBoard = generate4x4();
                 else solvedBoard = generate5x5();
-                magicConstantDisplay.textContent = `魔法定数（合計値）: ${magicConstant}`;
+                magicConstantDisplay.textContent = `魔法定数: ${magicConstant}`;
                 currentBoard = createPuzzle(solvedBoard);
                 messageElement.textContent = '';
                 renderGrid();
@@ -287,7 +253,18 @@
                 }
             };
 
-            checkButton.onclick = check;
+            checkButton.onclick = () => {
+                let win = true;
+                gridElement.querySelectorAll('.cell').forEach(cell => {
+                    const r = cell.dataset.r; const c = cell.dataset.c;
+                    cell.classList.remove('correct', 'incorrect');
+                    if (currentBoard[r][c] === solvedBoard[r][c]) cell.classList.add('correct');
+                    else { cell.classList.add('incorrect'); win = false; }
+                });
+                messageElement.textContent = win ? "正解です！" : "まだ間違いがあります。";
+                messageElement.style.color = win ? "green" : "red";
+            };
+
             newGameButton.onclick = start;
             start();
         });
