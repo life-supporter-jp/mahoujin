@@ -3,316 +3,295 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MP3再生リスト（ページネーション上下表示）</title>
+    <title>マルチサイズ魔方陣</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+        
+        /* --- 1. 全体レイアウト：最大800px・中央寄せ --- */
         body {
-            font-family: "Hiragino Kaku Gothic Pro", "Noto Sans JP", sans-serif;
-            padding: 20px;
-            margin: 0;
-            line-height: 1.6;
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f4f8;
             color: #333;
-        }
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .center-text {
-            text-align: center;
-            margin-bottom: 15px;
-        }
-        .container {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-        }
-        .mp3-item {
-            margin-bottom: 20px;
+            margin: 0 auto;       /* 中央寄せ */
             padding: 15px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            align-items: center;
-            background: #fff;
+            max-width: 800px;     /* 全体の横幅を800pxに制限 */
+            min-height: 100vh;
+            box-sizing: border-box;
+            overflow-x: hidden;   /* 横はみ出し防止 */
         }
-        .mp3-content {
-            flex-grow: 1;
-        }
-        .mp3-item h3 {
-            font-size: 16px;
-            margin: 0 0 10px 0;
-        }
-        audio {
-            width: 100%;
-        }
-        .status {
-            color: #d9534f;
-            font-weight: bold;
-            margin-top: 5px;
-            font-size: 14px;
-        }
-        /* お気に入りスタイル */
-        .favorite-box {
-            margin-left: 15px;
-        }
-        .favorite-box label {
-            cursor: pointer;
-            font-size: 28px;
-        }
-        .favorite-box input[type="checkbox"] + label:before {
-            content: '☆';
-            color: #ccc;
-        }
-        .favorite-box input[type="checkbox"]:checked + label:before {
-            content: '★';
-            color: #f1c40f;
-        }
-        .favorite-box input[type="checkbox"] {
-            display: none;
-        }
-        /* ページネーション */
-        .pagination {
-            text-align: center;
-            padding: 10px 0;
-            overflow-x: auto;
-            white-space: nowrap;
-            margin-bottom: 15px;
-        }
-        .pagination button {
-            background-color: #f8f9fa;
-            border: 1px solid #ccc;
-            padding: 8px 14px;
-            margin: 0 2px;
-            cursor: pointer;
-            font-weight: bold;
-            color: #000;
-            border-radius: 4px;
-        }
-        .pagination button:hover:not(.active) {
-            background-color: #e2e6ea;
-        }
-        .pagination button.active {
-            background-color: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        .info-image {
+
+        /* --- 2. 画像の自動リサイズ・中央配置 --- */
+        img {
+            max-width: 100% !important; /* 800pxの枠を超えない */
+            height: auto !important;    /* 比率維持 */
             display: block;
-            margin: 20px auto;
-            max-width: 100%;
-            height: auto;
+            margin: 0 auto 20px auto;   /* 中央寄せ＆下の余白 */
         }
-        .footer-section {
+
+        .container {
+            background-color: #fff;
+            padding: 1.5rem;      /* スマホ向けに少し狭める */
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
             text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #eee;
+            width: 100%;          /* 親要素いっぱいに広がる */
+            box-sizing: border-box;
+            margin-bottom: 30px;
         }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4a90e2;
+            margin-bottom: 0.5rem;
+        }
+
+        /* --- 3. 魔方陣の盤面：スマホではみ出さない設定 --- */
+        #sudoku-grid {
+            display: grid;
+            grid-gap: 2px;
+            margin: 0 auto;
+            border: 3px solid #333;
+            /* 修正：スマホでは画面幅に合わせて伸縮し、PCでは最大サイズで止まる */
+            width: 90vw; 
+            max-width: 450px; 
+            aspect-ratio: 1 / 1; /* 正方形を維持 */
+        }
+
+        #sudoku-grid.grid-3 { grid-template-columns: repeat(3, 1fr); }
+        #sudoku-grid.grid-4 { grid-template-columns: repeat(4, 1fr); }
+        #sudoku-grid.grid-5 { grid-template-columns: repeat(5, 1fr); }
+
+        .cell {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: clamp(1rem, 5vw, 1.8rem); /* 数字のサイズを自動調整 */
+        }
+
+        .cell-content {
+            font-weight: bold;
+            color: #1a202c;
+        }
+
+        .given { background-color: #e2e8f0; color: #4a5568; cursor: not-allowed; }
+        .correct { background-color: #c6f6d5; }
+        .incorrect { background-color: #feb2b2; }
+        .active-cell { background-color: #90cdf4; }
+
+        /* 操作パネル */
+        .controls {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .num-button, .control-button {
+            width: 45px;
+            height: 45px;
+            background-color: #4a90e2;
+            color: #fff;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-button.clear { background-color: #e53e3e; width: 60px; }
+
+        /* スマホ対応：ボタンを横並びにする調整 */
+        @media (max-width: 600px) {
+            #check-button, #new-game-button {
+                width: 45%; 
+                margin: 5px 2%;
+            }
+            .container { padding: 1rem; }
+        }
+
+        .description { text-align: left; line-height: 1.6; }
     </style>
 </head>
 <body>
 
-<img src="https://life-supporter.jp/sp/hxySQ4ff/ct5NJq8Z/images/XS012099.jpg" class="info-image">
+    <img src="https://life-supporter.jp/sp/hxySQ4ff/ct5NJq8Z/images/XS012099.jpg" alt="タイトル画像">
 
-<h2>再生するまでの準備時間があります。少しお待ちください。</h2>
-<div class="center-text">３００曲の内の１５曲を選んでみました。</div>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h3><span style="font-size: 18px; font-weight: bold;">魔法定数が縦、横、斜め、の合計数になるように数字を入れていきましょう。</span></h3>
+    </div>
 
-<h2 id="mainTitle">MP3再生リスト</h2>
-
-<div class="pagination top" id="paginationControlsTop"></div>
-<div class="center-text"><small>上部をスライドしてリストを選択してください。</small></div>
-
-<div class="container" id="mp3Container"></div>
-
-<div class="pagination bottom" id="paginationControlsBottom"></div>
-<div class="center-text"><small>スライドしてページを切り替えられます。</small></div>
-
-<script>
-    const mp3Data = [
-        ["軽快でお洒落な電子ピアノのテクノポップス", "103.mp3"],
-        ["ゆったりとしたオーケストラ楽曲", "105.mp3"],
-        ["美しいピアノメロディー", "117.mp3"],
-        ["落ち着いた雰囲気の大人なジャズ", "127.mp3"],
-        ["神秘的で温もりのある美しいヒーリング", "146.mp3"],
-        ["切なく美しいバイオリンピアノサウンド", "158.mp3"],
-        ["バイオリンクラシック", "168.mp3"],
-        ["水辺にいるようなヒーリング系ストリングス", "177.mp3"],
-        ["お洒落なピアノシンセ", "187.mp3"],
-        ["壮大で可愛らしいミュージック", "197.mp3"],
-        ["大人な雰囲気のスロージャズバラード", "210.mp3"],
-        ["キュートでかわいいメロディのポップス", "222.mp3"],
-        ["スウィートでウォームなバラード", "235.mp3"],
-        ["上品 おしゃれ ムード 穏やか 大人", "251.mp3"],
-        ["苦悩をこえて、愛がかなう。ラストシーン", "399.mp3"]
-    ];
-
-    const baseUrl = "https://life-supporter.jp/sp/hxySQ4ff/VjDWurLR/images/MP3/";
-    const mainTitle = document.getElementById("mainTitle");
-    const container = document.getElementById("mp3Container");
-    const paginationControlsTop = document.getElementById("paginationControlsTop");
-    const paginationControlsBottom = document.getElementById("paginationControlsBottom");
-    const FAVORITES_KEY = "mp3Favorites";
-
-    const ITEMS_PER_PAGE = 5;
-    const TOTAL_PAGES = Math.ceil(mp3Data.length / ITEMS_PER_PAGE);
-    let currentPage = 1;
-
-    function loadFavorites() {
-        try {
-            const stored = localStorage.getItem(FAVORITES_KEY);
-            return stored ? JSON.parse(stored) : {};
-        } catch (e) { return {}; }
-    }
-
-    function saveFavorites(favorites) {
-        try {
-            localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-        } catch (e) { console.error(e); }
-    }
-
-    let favorites = loadFavorites();
-
-    function handlePlayAttempt(audioElement, statusElement) {
-        if (audioElement.readyState >= 4) {
-            audioElement.play().catch(e => {});
-            statusElement.textContent = '';
-            return;
-        }
-        statusElement.textContent = '⌛ 準備中...';
-        audioElement.controls = false;
+    <div class="container">
+        <h1>魔方陣ゲーム</h1>
         
-        const canplaythroughHandler = () => {
-            statusElement.textContent = '✅ 再生準備完了';
-            audioElement.controls = true;
-            audioElement.removeEventListener('canplaythrough', canplaythroughHandler);
-            audioElement.play().catch(e => {
-                statusElement.textContent = '✅ 再生準備完了 (再生ボタンを押してください)';
-            });
-        };
-        audioElement.addEventListener('canplaythrough', canplaythroughHandler);
-        audioElement.load();
-    }
+        <div id="magic-constant-display" style="font-weight: bold; background: #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 15px;"></div>
 
-    function displayList(page) {
-        container.innerHTML = '';
-        const start = (page - 1) * ITEMS_PER_PAGE;
-        const end = start + ITEMS_PER_PAGE;
-        const pageData = mp3Data.slice(start, end);
+        <div id="size-selector" class="flex justify-center gap-2 mb-4">
+            <button class="px-4 py-2 bg-gray-200 rounded active:bg-blue-500" data-size="3">3x3</button>
+            <button class="px-4 py-2 bg-gray-200 rounded" data-size="4">4x4</button>
+            <button class="px-4 py-2 bg-gray-200 rounded" data-size="5">5x5</button>
+        </div>
 
-        pageData.forEach(([title, filename], index) => {
-            const item = document.createElement("div");
-            item.className = "mp3-item";
-            
-            const contentDiv = document.createElement("div");
-            contentDiv.className = "mp3-content";
+        <div id="sudoku-grid"></div>
 
-            const titleElem = document.createElement("h3");
-            titleElem.textContent = `${start + index + 1}. ${title}`;
+        <div class="controls" id="number-controls"></div>
 
-            const audio = document.createElement("audio");
-            audio.controls = true;
-            audio.setAttribute('controlsList', 'nodownload');
-            audio.oncontextmenu = () => false;
+        <div class="flex justify-center mt-4">
+            <button id="check-button" class="px-6 py-2 bg-green-500 text-white font-bold rounded-lg shadow hover:bg-green-600">チェック</button>
+            <button id="new-game-button" class="ml-2 px-6 py-2 bg-blue-500 text-white font-bold rounded-lg shadow hover:bg-blue-600">新しいゲーム</button>
+        </div>
+
+        <div id="message" class="mt-4 font-bold h-8"></div>
+
+        <div class="description mt-8 border-t pt-4">
+            <p><strong style="font-size: 18px;">魔方陣とは？</strong></p>
+            <p style="font-size: 16px;">縦・横・対角線の数字の合計がすべて同じ値（魔法定数）になる正方形のパズルです。</p>
+            <ul style="font-size: 15px; margin-top: 10px;">
+                <li>3x3：1〜9を使用（定数15）</li>
+                <li>4x4：1〜16を使用（定数34）</li>
+                <li>5x5：1〜25を使用（定数65）</li>
+            </ul>
+        </div>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <p style="font-size: 17px; font-weight: bold;">
+            今回のアプリは如何だったでしょうか？他にも脳トレゲームや趣味のサイトをご案内します。スマホの大事な記録を安全に残せるサービスもございます。
+        </p>
+        <img src="https://life-supporter.jp/sp/hxySQ4ff/ct5NJq8Z/images/XS012085.jpg" alt="案内画像">
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <p style="font-size: 22px; font-weight: bold;">以下より体験版をご確認ください。</p>
+            <img src="https://life-supporter.jp/sp/hxySQ4ff/ct5NJq8Z/images/XS012100.jpg" style="width: 180px;">
+            <div style="margin-top: 10px;">
+                <a href="https://life-supporter.jp/lp/HRSuykFf" style="color: blue; font-size: 18px; text-decoration: underline;">
+                    https://life-supporter.jp/lp/HRSuykFf
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gridElement = document.getElementById('sudoku-grid');
+            const sizeSelector = document.getElementById('size-selector');
+            const numberControls = document.getElementById('number-controls');
+            const checkButton = document.getElementById('check-button');
+            const newGameButton = document.getElementById('new-game-button');
+            const messageElement = document.getElementById('message');
+            const magicConstantDisplay = document.getElementById('magic-constant-display');
             
-            const source = document.createElement("source");
-            source.src = baseUrl + filename;
-            source.type = "audio/mpeg";
-            audio.appendChild(source);
-            
-            const statusDiv = document.createElement("div");
-            statusDiv.className = "status";
-            
-            audio.addEventListener('play', (e) => {
-                document.querySelectorAll('audio').forEach(a => {
-                    if (a !== audio && !a.paused) a.pause();
+            let activeCell = null;
+            let currentBoard = [];
+            let solvedBoard = [];
+            let gridSize = 3;
+            let magicConstant = 15;
+
+            function generate3x3() { magicConstant = 15; return [[8, 1, 6], [3, 5, 7], [4, 9, 2]]; }
+            function generate4x4() { magicConstant = 34; return [[1, 15, 14, 4], [12, 6, 7, 9], [8, 10, 11, 5], [13, 3, 2, 16]]; }
+            function generate5x5() { magicConstant = 65; return [[17, 24, 1, 8, 15], [23, 5, 7, 14, 16], [4, 6, 13, 20, 22], [10, 12, 19, 21, 3], [11, 18, 25, 2, 9]]; }
+
+            function createPuzzle(solved) {
+                return solved.map(row => row.map(val => Math.random() > 0.4 ? val : 0));
+            }
+
+            function renderGrid() {
+                gridElement.innerHTML = '';
+                gridElement.className = 'grid-' + gridSize;
+                currentBoard.forEach((row, r) => {
+                    row.forEach((val, c) => {
+                        const cell = document.createElement('div');
+                        cell.classList.add('cell');
+                        if (val !== 0 && val === solvedBoard[r][c]) cell.classList.add('given');
+                        
+                        const content = document.createElement('div');
+                        content.classList.add('cell-content');
+                        content.textContent = val !== 0 ? val : '';
+                        cell.appendChild(content);
+
+                        if (!cell.classList.contains('given')) {
+                            cell.addEventListener('click', () => {
+                                if (activeCell) activeCell.classList.remove('active-cell');
+                                activeCell = cell;
+                                activeCell.classList.add('active-cell');
+                            });
+                        }
+                        cell.dataset.r = r; cell.dataset.c = c;
+                        gridElement.appendChild(cell);
+                    });
                 });
-                handlePlayAttempt(audio, statusDiv);
-            });
+            }
 
-            contentDiv.appendChild(titleElem);
-            contentDiv.appendChild(audio);
-            contentDiv.appendChild(statusDiv);
+            function renderButtons() {
+                numberControls.innerHTML = '';
+                for (let i = 1; i <= gridSize * gridSize; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'num-button';
+                    btn.textContent = i;
+                    btn.onclick = () => {
+                        if (!activeCell) return;
+                        const r = activeCell.dataset.r; const c = activeCell.dataset.c;
+                        currentBoard[r][c] = i;
+                        activeCell.querySelector('.cell-content').textContent = i;
+                    };
+                    numberControls.appendChild(btn);
+                }
+                const clr = document.createElement('button');
+                clr.className = 'control-button clear';
+                clr.textContent = '消去';
+                clr.onclick = () => {
+                    if (!activeCell) return;
+                    currentBoard[activeCell.dataset.r][activeCell.dataset.c] = 0;
+                    activeCell.querySelector('.cell-content').textContent = '';
+                };
+                numberControls.appendChild(clr);
+            }
 
-            const favoriteBox = document.createElement("div");
-            favoriteBox.className = "favorite-box";
-            const checkboxId = `fav-${start + index}`;
-            const checkbox = document.createElement("input");
-            checkbox.type = "checkbox";
-            checkbox.id = checkboxId;
-            checkbox.checked = favorites[filename] || false;
+            function check() {
+                let win = true;
+                gridElement.querySelectorAll('.cell').forEach(cell => {
+                    const r = cell.dataset.r; const c = cell.dataset.c;
+                    cell.classList.remove('correct', 'incorrect');
+                    if (currentBoard[r][c] === solvedBoard[r][c]) {
+                        cell.classList.add('correct');
+                    } else {
+                        cell.classList.add('incorrect');
+                        win = false;
+                    }
+                });
+                messageElement.textContent = win ? "正解です！お見事！" : "どこかが違っているようです。";
+                messageElement.style.color = win ? "green" : "red";
+            }
 
-            const label = document.createElement("label");
-            label.htmlFor = checkboxId;
+            function start() {
+                if (gridSize === 3) solvedBoard = generate3x3();
+                else if (gridSize === 4) solvedBoard = generate4x4();
+                else solvedBoard = generate5x5();
+                magicConstantDisplay.textContent = `魔法定数（合計値）: ${magicConstant}`;
+                currentBoard = createPuzzle(solvedBoard);
+                messageElement.textContent = '';
+                renderGrid();
+                renderButtons();
+            }
 
-            checkbox.addEventListener('change', (e) => {
-                favorites[filename] = e.target.checked;
-                saveFavorites(favorites);
-            });
+            sizeSelector.onclick = (e) => {
+                if (e.target.dataset.size) {
+                    gridSize = parseInt(e.target.dataset.size);
+                    start();
+                }
+            };
 
-            favoriteBox.appendChild(checkbox);
-            favoriteBox.appendChild(label);
-            item.appendChild(contentDiv);
-            item.appendChild(favoriteBox);
-            container.appendChild(item);
+            checkButton.onclick = check;
+            newGameButton.onclick = start;
+            start();
         });
-        
-        renderPaginationControls(page, paginationControlsTop);
-        renderPaginationControls(page, paginationControlsBottom);
-    }
-
-    function renderPaginationControls(activePage, targetElement) {
-        targetElement.innerHTML = '';
-        const prevButton = document.createElement('button');
-        prevButton.textContent = '≪ 前へ';
-        prevButton.disabled = activePage === 1;
-        prevButton.onclick = () => changePage(activePage - 1);
-        targetElement.appendChild(prevButton);
-
-        for (let i = 1; i <= TOTAL_PAGES; i++) {
-            const button = document.createElement('button');
-            button.textContent = i;
-            if (i === activePage) button.classList.add('active');
-            button.onclick = () => changePage(i);
-            targetElement.appendChild(button);
-        }
-
-        const nextButton = document.createElement('button');
-        nextButton.textContent = '次へ ≫';
-        nextButton.disabled = activePage === TOTAL_PAGES;
-        nextButton.onclick = () => changePage(activePage + 1);
-        targetElement.appendChild(nextButton);
-    }
-
-    function changePage(page) {
-        if (page >= 1 && page <= TOTAL_PAGES) {
-            currentPage = page;
-            displayList(currentPage);
-            mainTitle.scrollIntoView({ behavior: 'smooth' });
-        }
-    }
-
-    displayList(currentPage);
-</script>
-
-<div class="footer-section">
-    <p><b>今回のアプリは如何だったでしょうか？<br>
-    他にも使えるアプリ、脳トレができるゲームや趣味に俳句、和歌などが利用できるサイトをご案内します。</b></p>
-    <p><b>また大事な記録をサーバーに残せるサイトで、何かあった時に情報開示も指定できるサイトです。<br>
-    スマホのID、PWを記録しておくと安心です。</b></p>
-
-    <img src="https://life-supporter.jp/sp/hxySQ4ff/ct5NJq8Z/images/XS012085.jpg" class="info-image">
-
-    <div style="font-size: 24px; font-weight: bold; margin: 20px 0;">
-        以下より体験版をご確認ください。
-    </div>
-
-    <img src="https://life-supporter.jp/sp/hxySQ4ff/ct5NJq8Z/images/XS012100.jpg" style="width: 200px;">
-    
-    <div style="margin-top: 10px;">
-        <a href="https://life-supporter.jp/lp/HRSuykFf" style="font-size: 20px; color: #007bff; text-decoration: none; font-weight: bold;">
-            https://life-supporter.jp/lp/HRSuykFf
-        </a>
-    </div>
-</div>
-
+    </script>
 </body>
 </html>
